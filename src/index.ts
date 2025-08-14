@@ -54,7 +54,7 @@ class MediapipeFacemeshExtension implements JsPsychExtension {
           modelAssetPath:
             "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task",
         },
-        runningMode: "VIDEO",
+        runningMode: "VIDEO", // wichtig für Video-Modus!
         outputFaceBlendshapes: true,
         outputFacialTransformationMatrixes: true,
         numFaces: 1,
@@ -184,7 +184,7 @@ class MediapipeFacemeshExtension implements JsPsychExtension {
     }
   }
 
-  // Neue API
+  // Neue API → Unity-kompatibles JSON
   private onFaceLandmarkerResult(results: FaceLandmarkerResult): void {
     let rotation = new Euler();
     let translation = new Vector3();
@@ -209,14 +209,12 @@ class MediapipeFacemeshExtension implements JsPsychExtension {
 
     const orientation = "front";
 
-
-	// Was for unity specific project, can be deleted
     const unityData = {
       landmarks: landmarksFlat,
       orientation,
       blendshapes: blendshapesObj,
       rotation: {
-        x: -rotation.x, 
+        x: -rotation.x, // X invertieren
         y: rotation.y,
         z: rotation.z
       },

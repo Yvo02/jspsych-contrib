@@ -37,7 +37,7 @@ class MediapipeFacemeshExtension implements JsPsychExtension {
   private onResultCallbacks = new Array<(ITrackingResult) => void>();
   private recordTracks = false;
   
-  private fullTracking = false;  // default: tracking on
+  private fullTracking = false;  // default: tracking off
 
   constructor(private jsPsych: JsPsych) {
     autoBind(this);
@@ -120,7 +120,7 @@ class MediapipeFacemeshExtension implements JsPsychExtension {
   };
 
   on_load = (params) => {
-    console.log("params in on_load:", params);
+    // console.log("params in on_load:", params);
     this.recordedChunks = [];
     this.recordTracks = params?.record ?? false;
     this.fullTracking = params?.useFullTracking ?? false;
@@ -157,11 +157,6 @@ class MediapipeFacemeshExtension implements JsPsychExtension {
     );
   }
 
-  public setFullTracking(value: boolean): void {
-    this.fullTracking = value;
-    console.log("Full tracking set to:", value);
-  }
-
   public addTrackingResultCallback(callback: (ITrackingResult) => void) {
     this.onResultCallbacks.push(callback);
   }
@@ -194,8 +189,6 @@ class MediapipeFacemeshExtension implements JsPsychExtension {
       this.onResultCallbacks.forEach((cb) => cb(result));
     }
   }
-
-
 
   // Neue API Ergebnisse
   private onFaceLandmarkerResult(results: FaceLandmarkerResult): void {
@@ -239,17 +232,6 @@ class MediapipeFacemeshExtension implements JsPsychExtension {
       };
 
     }
-
-    /*
-    const result: IFaceTrackingResult = {
-      frame_id: this.animationFrameId,
-      transformation: transformationMatrix,
-      rotation,
-      translation,
-      blendshapes,
-    };
-     */
-
     if (this.recordTracks) this.recordedChunks.push(result);
     this.onResultCallbacks.forEach((cb) => cb(result));
   }

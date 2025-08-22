@@ -43,7 +43,7 @@ declare module "@mediapipe/tasks-vision" {
   export interface FaceLandmarkerResult {
     faceBlendshapes?: Blendshape[];
     facialTransformationMatrixes?: FacialTransformationMatrix[];
-    landmarks?: NormalizedLandmarkList[];
+    faceLandmarks?: NormalizedLandmarkList[];
   }
   export class FaceLandmarker {
     static createFromOptions(

@@ -1,7 +1,4 @@
-// Alte FaceMesh API
 import "@mediapipe/face_mesh";
-
-// Neue FaceLandmarker API
 import {
   FaceLandmarker,
   FilesetResolver,
@@ -25,7 +22,7 @@ class MediapipeFacemeshExtension implements JsPsychExtension {
     name: "mediapipe-face-mesh",
   };
 
-  private recordedChunks = new Array<IFaceTrackingResult>();
+  private recordedChunks = new Array<any>();
   private animationFrameId: number;
   public mediaStream: MediaStream;
   private videoElement: HTMLVideoElement;
@@ -39,29 +36,33 @@ class MediapipeFacemeshExtension implements JsPsychExtension {
 
   private onResultCallbacks = new Array<(ITrackingResult) => void>();
   private recordTracks = false;
+  
+  private fullTracking = false;  // default: tracking on
 
   constructor(private jsPsych: JsPsych) {
     autoBind(this);
   }
 
   initialize = async (params): Promise<void> => {
+    console.log("INIT params:", params);
     this.usingNewAPI = params?.useFaceLandmarker ?? false;
+    this.fullTracking = params?.useFullTracking ?? false;
 
     if (this.usingNewAPI) {
       // Neue Face Landmarker API
       const vision = await FilesetResolver.forVisionTasks(
         "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
       );
-	this.faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
-	  baseOptions: {
-		modelAssetPath:
-		  "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task",
-	  },
-	  runningMode: "VIDEO",             // <-- WICHTIG für Video-Streams
-	  outputFaceBlendshapes: true,
-	  outputFacialTransformationMatrixes: true,
-	  numFaces: 1,
-	});
+      this.faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
+        baseOptions: {
+          modelAssetPath:
+            "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task",
+        },
+        runningMode: "VIDEO", // wichtig für Video-Modus!
+        outputFaceBlendshapes: true,
+        outputFacialTransformationMatrixes: true,
+        numFaces: 1,
+      });
     } else {
       // Alte FaceMesh API
       this.faceMesh = new FaceMesh({
@@ -88,7 +89,6 @@ class MediapipeFacemeshExtension implements JsPsychExtension {
     this.canvasElement?.remove();
     this.videoElement?.remove();
 
-    // Canvas & Video anlegen
     this.canvasElement = document.createElement("canvas");
     this.canvasElement.width = 1280;
     this.canvasElement.height = 720;
@@ -99,9 +99,7 @@ class MediapipeFacemeshExtension implements JsPsychExtension {
     this.mediaStream = this.jsPsych.pluginAPI.getCameraStream();
 
     if (!this.mediaStream) {
-      console.warn(
-        "The mediapipe-face-mesh extension is trying to start but the camera is not initialized."
-      );
+      console.warn("Camera not initialized.");
       return;
     }
 
@@ -122,12 +120,13 @@ class MediapipeFacemeshExtension implements JsPsychExtension {
   };
 
   on_load = (params) => {
+    console.log("params in on_load:", params);
     this.recordedChunks = [];
     this.recordTracks = params?.record ?? false;
   };
 
   on_finish = () => {
-    console.log("face_mesh tracked chunks: " + this.recordedChunks.length);
+    console.log("Tracked chunks: " + this.recordedChunks.length);
     this.stopAnimationFrame();
     this.recordTracks = false;
     return { face_mesh: this.recordedChunks };
@@ -143,7 +142,10 @@ class MediapipeFacemeshExtension implements JsPsychExtension {
 
     if (this.usingNewAPI) {
       const results: FaceLandmarkerResult =
-        this.faceLandmarker.detectForVideo(this.videoElement, performance.now());
+        this.faceLandmarker.detectForVideo(
+          this.videoElement,
+          performance.now()
+        );
       this.onFaceLandmarkerResult(results);
     } else {
       await this.faceMesh.send({ image: this.canvasElement });
@@ -162,7 +164,7 @@ class MediapipeFacemeshExtension implements JsPsychExtension {
     this.onResultCallbacks.splice(this.onResultCallbacks.indexOf(callback), 1);
   }
 
-  // Alte API Ergebnisse
+  // Alte API
   private onMediaPipeResult(results: Results): void {
     if (results.multiFaceGeometry[0]) {
       const transformationMatrix = results.multiFaceGeometry[0]
@@ -187,6 +189,8 @@ class MediapipeFacemeshExtension implements JsPsychExtension {
     }
   }
 
+
+
   // Neue API Ergebnisse
   private onFaceLandmarkerResult(results: FaceLandmarkerResult): void {
     let transformationMatrix, rotation, translation, blendshapes;
@@ -208,6 +212,29 @@ class MediapipeFacemeshExtension implements JsPsychExtension {
       }));
     }
 
+    let result: IFaceTrackingResult;
+
+
+    if (this.fullTracking === true){
+      result = {
+        frame_id: this.animationFrameId,
+        transformation: transformationMatrix,
+        rotation,
+        translation,
+        blendshapes: blendshapes,
+      };
+    }
+    else{
+      result = {
+        frame_id: this.animationFrameId,
+        transformation: transformationMatrix,
+        rotation,
+        translation,
+      };
+
+    }
+
+    /*
     const result: IFaceTrackingResult = {
       frame_id: this.animationFrameId,
       transformation: transformationMatrix,
@@ -215,6 +242,7 @@ class MediapipeFacemeshExtension implements JsPsychExtension {
       translation,
       blendshapes,
     };
+     */
 
     if (this.recordTracks) this.recordedChunks.push(result);
     this.onResultCallbacks.forEach((cb) => cb(result));

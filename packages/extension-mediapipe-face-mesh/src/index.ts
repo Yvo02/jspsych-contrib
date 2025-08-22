@@ -123,6 +123,7 @@ class MediapipeFacemeshExtension implements JsPsychExtension {
     console.log("params in on_load:", params);
     this.recordedChunks = [];
     this.recordTracks = params?.record ?? false;
+    this.fullTracking = params?.useFullTracking ?? false;
   };
 
   on_finish = () => {
@@ -154,6 +155,11 @@ class MediapipeFacemeshExtension implements JsPsychExtension {
     this.animationFrameId = window.requestAnimationFrame(
       this.processFrame.bind(this)
     );
+  }
+
+  public setFullTracking(value: boolean): void {
+    this.fullTracking = value;
+    console.log("Full tracking set to:", value);
   }
 
   public addTrackingResultCallback(callback: (ITrackingResult) => void) {
@@ -247,6 +253,9 @@ class MediapipeFacemeshExtension implements JsPsychExtension {
     if (this.recordTracks) this.recordedChunks.push(result);
     this.onResultCallbacks.forEach((cb) => cb(result));
   }
+
+
+
 }
 
 export default MediapipeFacemeshExtension;
